@@ -1,0 +1,129 @@
+﻿# 55. 右旋字符串+next()总结
+
+![image.png](55%20%E5%8F%B3%E6%97%8B%E5%AD%97%E7%AC%A6%E4%B8%B2+next()%E6%80%BB%E7%BB%93/image.png)
+
+https://kamacoder.com/problempage.php?pid=1065
+
+跟上一题[**LCR 182. 动态口令**](LCR%20182%20%E5%8A%A8%E6%80%81%E5%8F%A3%E4%BB%A4.md) 差不多，上一题是左旋，这题是右旋，解决的思路是一样的。代码如下：
+
+```java
+// 正确代码
+import java.util.Scanner;
+
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        // 下面两行代码是易错点
+        int inputNum = Integer.parseInt(sc.nextLine());
+        String inputStr = sc.nextLine();
+        
+        if(inputNum >= inputStr.length()){
+            System.out.println(inputStr);
+        }else{
+            StringBuilder sb = new StringBuilder();
+            sb.append(inputStr.substring(inputStr.length() - inputNum));
+            sb.append(inputStr.substring(0, inputStr.length() - inputNum));
+            System.out.println(sb.toString());
+        }
+    }
+}
+```
+
+但是这题要求ACM模式，因此在输入的两行代码那里很容易有坑。
+
+- 先看错误代码一：
+
+```java
+// 错误代码一
+import java.util.Scanner;
+
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int inputNum = sc.nextInt();
+        // 如果输入的字符串中前几个字符是空格，下面代码会跳过这些空格
+        String inputStr = sc.next(); 
+        if(inputNum >= inputStr.length()){
+            System.out.println(inputStr);
+        }else{
+            StringBuilder sb = new StringBuilder();
+            sb.append(inputStr.substring(inputStr.length() - inputNum));
+            sb.append(inputStr.substring(0, inputStr.length() - inputNum));
+            System.out.println(sb.toString());
+        }
+    }
+}
+```
+
+这里错误的点在于`sc.next()`会先**自动跳过开头的所有空白符**（包括空格、制表符、换行符等），因此假如我输入的字符串中的前几个字符是空格的话，`sc.next()`会将这些空格全部跳过，只吃字符串中后面那些非空格的部分，导致我的字符串输入错误。比如我输入的是”  jaisdjifa”，但实际上接收到的是“jaisdjifa”，前面的空格被跳过了。
+
+- 接着看错误代码二：
+
+```java
+// 错误代码二
+import java.util.Scanner;
+
+public class Main{
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        int inputNum = sc.nextInt();
+        // 下面代码会将换行符吃进去，而不是吃输入的字符串
+        String inputStr = sc.nextLine(); 
+        if(inputNum >= inputStr.length()){
+            System.out.println(inputStr);
+        }else{
+            StringBuilder sb = new StringBuilder();
+            sb.append(inputStr.substring(inputStr.length() - inputNum));
+            sb.append(inputStr.substring(0, inputStr.length() - inputNum));
+            System.out.println(sb.toString());
+        }
+    }
+}
+```
+
+上面的代码中inputStr吃进去的并不是要输入字符串，而是一个空字符串。因为sc.nextLine()的机理是这样的：他会将遇到的第一个**换行符**之前的所有输入都接收进去，然后将扫描器的位置移动到换行符之后（其实可以认为换行符被消耗掉了）。再来看本题给的示例，输入给程序的是`2\nabcdefg` （`\n` 是换行符），然后sc.nextInt()将前面的数字2给吃掉后，只剩下`\nabcdefg`，这时候`sc.nextLine()`正准备吃字符串的时候，结果发现刚开始就是一个换行符，就直接结束读取，将一个空字符串传给`inputStr`。而后面实际上要输入的`abcdefg`却直接被忽略掉了。
+
+怎么解决上面两个易错点呢？
+
+1. 一个方法是用我上面给的那个方法，就是统一用sc.nextLine()，但是要注意，sc.nextLine()读进来的是字符串，因此要通过Integer.parseInt将string转换成int。
+2. 另外一个方法是当用c.nextInt()读入数字后，马上在用一个sc.nextLine();消耗掉数字后面的换行符，最后再通过一个sc.nextLine()将字符串读入进来。关键代码如下：
+
+```java
+int inputNum = sc.nextInt();
+sc.nextLine(); // 关键：消耗掉上一行留下的换行符
+String inputStr = sc.nextLine(); // 现在可以正确读取字符串了
+```
+
+总结一下这几种next吧（来自gemini）：
+
+| 方法 (Method) | 读取内容 | 结束标志 (以什么为界) | 如何处理结束标志 (分隔符) | 核心用途 | 主要陷阱 |
+| --- | --- | --- | --- | --- | --- |
+| next() | 先跳过开头的空白符（包括空格、制表符、换行符等），再读取单个单词 | 任何空白符(空格、Tab、换行符) | 读取内容后，将结尾的空白符（如换行符或空格）留在输入流中 | 读取由空格隔开的独立数据项，例如命令、单个词汇 | 无法读取包含空格的字符串 (例如，输入 "Hello World" 只会得到 "Hello") |
+| nextLine() | 读取一整行文本（包含空格）。如果开头是换行符，则读取的是空字符串 | 换行符（用户按下回车键时产生） | 直到遇到换行符，然后消耗换行符（不会包含在返回结果中），并将光标移到下一行 | 读取可能包含空格的任意文本，是读取用户输入的最安全、最通用的方法 | 若在 nextInt() 或 next() 之后直接调用，它会立即读到被它们遗留的换行符，从而返回一个空字符串 |
+| nextInt()、nextDouble()等数值类型 | 先跳过开头的空白符（包括空格、制表符、换行符等），再读取整数、浮点数等 | 第一个非数值的字符(通常是空白符或换行符) | 读取数值后，将后面的分隔符（如换行符或空格）留在输入流中 | 专门用于读取格式明确的数字 | 它本身是陷阱的制造者。 它留下的换行符会干扰紧随其后的 nextLine() 调用，导致 nextLine() 读到空字符串） |
+
+最佳实践：始终使用 `nextLine()` 读取每一行，然后根据需要手动进行类型转换。示例：
+
+```
+import java.util.Scanner;
+
+public class SafeInputReader {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("请输入您的年龄: ");
+        // 读取整行，然后转换为整数
+        int age = Integer.parseInt(scanner.nextLine());
+
+        System.out.println("请输入您的姓名: ");
+        // 读取整行，无需转换
+        String name = scanner.nextLine();
+
+        System.out.println("请输入您的期望薪资: ");
+        // 读取整行，然后转换为浮点数
+        double salary = Double.parseDouble(scanner.nextLine());
+
+        System.out.printf("信息确认：姓名 - %s, 年龄 - %d, 期望薪资 - %.2f%n", name, age, salary);
+    }
+}
+```
